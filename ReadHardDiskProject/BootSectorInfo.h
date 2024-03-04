@@ -71,6 +71,8 @@ public:
 	FAT32BootSectorInfo();
 	~FAT32BootSectorInfo() {};
 	void printInfo();
+	int firstDataSector(); //figure where the data starts
+	int firstSectorOfCluster(int n); //figure where the nth cluster starts
 };
 
 

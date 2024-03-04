@@ -22,7 +22,7 @@ FAT32BootSectorInfo::FAT32BootSectorInfo()
 	_FSInfo = 0;
 	_BackupBootSector = 0;
 	_Reserved = "";
-	_DriveNumber = 0;
+	_DriveNumber = "";
 	_Reserved1 = 0;
 	_BootSignature = "";
 	_VolumeID = 0;
@@ -37,17 +37,31 @@ void FAT32BootSectorInfo::printInfo() {
 	std::cout << "Sectors per Cluster: " << _SectorsPerCluster << std::endl;
 	std::cout << "Reserved Sectors: " << _ReservedSectors << std::endl;
 	std::cout << "Number of FATs: " << _NumberOfFATs << std::endl;
-	std::cout << "Media Descriptor: " << _MediaDescriptor << std::endl;
-	std::cout << "Sectors per Track: " << _SectorsPerTrack << std::endl;
-	std::cout << "Number of Heads: " << _NumberOfHeads << std::endl;
-	std::cout << "Hidden Sectors: " << _HiddenSectors << std::endl;
+	//std::cout << "Media Descriptor: " << _MediaDescriptor << std::endl;
+	//std::cout << "Sectors per Track: " << _SectorsPerTrack << std::endl;
+	//std::cout << "Number of Heads: " << _NumberOfHeads << std::endl;
+	//std::cout << "Hidden Sectors: " << _HiddenSectors << std::endl;
 	std::cout << "Total Sectors 32: " << _TotalSectors32 << std::endl;
 	std::cout << "FAT Size: " << _FATSize << std::endl;
 	std::cout << "Root Cluster: " << _RootCluster << std::endl;
-	std::cout << "FS Info: " << _FSInfo << std::endl;
-	std::cout << "Backup Boot Sector: " << _BackupBootSector << std::endl;
-	std::cout << "Drive Number: " << _DriveNumber << std::endl;
-	std::cout << "Volume ID: " << _VolumeID << std::endl;
+	//std::cout << "FS Info: " << _FSInfo << std::endl;
+	//std::cout << "Backup Boot Sector: " << _BackupBootSector << std::endl;
+	//std::cout << "Drive Number: " << _DriveNumber << std::endl;
+	//std::cout << "Volume ID: " << _VolumeID << std::endl;
 	std::cout << "Volume Label: " << _VolumeLabel << std::endl;
 	std::cout << "File System Type (FAT Type): " << _FileSystemType << std::endl;
+	std::cout << "First Data Sector: " << firstDataSector() << std::endl;
+	std::cout << "First RDET Sector: " << firstSectorOfCluster(_RootCluster) << std::endl;
+}
+
+int FAT32BootSectorInfo::firstDataSector()
+{
+	int rootDirectorySectors = ((_RootEntries * 32) + (_BytesPerSector - 1)) / _BytesPerSector;
+	int firstDataSector = _ReservedSectors + (_NumberOfFATs * _FATSize) + rootDirectorySectors;
+	return firstDataSector;
+}
+
+int FAT32BootSectorInfo::firstSectorOfCluster(int n)
+{
+	return ((n - 2) * _SectorsPerCluster) + firstDataSector();
 }
