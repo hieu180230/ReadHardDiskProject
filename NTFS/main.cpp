@@ -8,7 +8,7 @@ int main(int argc, int** agrv)
     name = L"\\\\.\\" + name + L":";
     LPCWSTR drive = name.c_str();
     BYTE sector[1024];
-    bool check = readNSector(drive, 0, sector, 2);
+    bool check = readNSector(drive, 0, sector, 1);
     if (check == true)
     {
         BPB* bpb = NULL;

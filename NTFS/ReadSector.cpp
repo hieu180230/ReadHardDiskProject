@@ -1,8 +1,8 @@
 #include "ReadSector.h"
 #include <cmath>
 
-
-int readNSector(LPCWSTR drive, int readPoint, BYTE* sector, int numbersOfSector)
+//https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-setfilepointerex
+int readNSector(LPCWSTR drive, int64_t readPoint, BYTE* sector, int numbersOfSector)
 {
     int retCode = 0;
     DWORD bytesRead;
@@ -18,22 +18,31 @@ int readNSector(LPCWSTR drive, int readPoint, BYTE* sector, int numbersOfSector)
 
     if (device == INVALID_HANDLE_VALUE) // Open Error
     {
-        cout << "CreateFile : " << GetLastError() << endl;
-        cout << endl;
+        std::cout << "CreateFile : " << GetLastError() << std::endl;
+        std::cout << std::endl;
         return 0;
     }
 
-    SetFilePointer(device, readPoint, NULL, FILE_BEGIN);//Set a Point to Read
+    LARGE_INTEGER li;
+    li.QuadPart = readPoint;
+    if (!SetFilePointerEx(device, li, NULL, FILE_BEGIN)) // Set a Point to Read
+    {
+        std::cout << "SetFilePointerEx : " << GetLastError() << std::endl;
+        CloseHandle(device);
+        return 0;
+    }
 
     if (!ReadFile(device, sector, numbersOfSector * 512, &bytesRead, NULL))
     {
-        cout << "ReadFile : " << GetLastError() << endl;
+        std::cout << "ReadFile : " << GetLastError() << std::endl;
+        CloseHandle(device);
         return 0;
     }
     else
     {
-        cout << "Read successfuly !" << endl;
-        cout << endl;
+        std::cout << "Read successfully!" << std::endl;
+        std::cout << std::endl;
+        CloseHandle(device);
         return 1;
     }
 }
@@ -48,7 +57,7 @@ int64_t Get_Bytes(BYTE* sector, int offset, int number)
 }
 
 //doc thong tin trong bang phan vung NTFS roi hien thi ra man hinh
-void Read_BPBNTFS(BYTE* sector, LPCWSTR disk, BPB* bpb)
+void Read_BPBNTFS(BYTE* sector, LPCWSTR disk, BPB* &bpb)
 {
     uint16_t bytes_per_sector = Get_Bytes(sector, 0x0B, 2); // Bytes Per Sector
     uint8_t sectors_per_cluster = Get_Bytes(sector, 0x0D, 1); // Sectors Per Cluster
@@ -57,27 +66,24 @@ void Read_BPBNTFS(BYTE* sector, LPCWSTR disk, BPB* bpb)
     uint64_t MFTStart = Get_Bytes(sector, 0x30, 8); // Cluster start of MFT
     uint64_t MFTMirrorStart = Get_Bytes(sector, 0x38, 8); // Cluster start of MFTMirror
     int8_t MFTEntrySizeByte = Get_Bytes(sector, 0x40, 1); // MFT Entry byte
+    int MFTEntrySize;
     if(MFTEntrySizeByte < 0)
     {
         MFTEntrySizeByte = -MFTEntrySizeByte;
+        MFTEntrySize = pow(2, MFTEntrySizeByte) / bytes_per_sector;
+    } else 
+    {
+        MFTEntrySize = MFTEntrySizeByte * sectors_per_cluster;
     }
-    int MFTEntrySize = pow(2, MFTEntrySizeByte);
     cout << endl;
     cout << endl << endl << endl;
-    // cout << "|Bytes Per Sector : " << bytes_per_sector << endl;
-    // cout << "|Sectors Per Cluster : " << sectors_per_cluster << endl;
-    // cout << "|Sectors Per Track : " << sectors_per_track << endl;
-    // cout << "|Total Sectors : " << total_sectors << endl;
-    // cout << "|Cluster start of MFT : " << MFTStart << endl;
-    // cout << "|Cluster start of MFTMirror : " << MFTMirrorStart << endl;
-    // cout << "|MFT Entry Size : " << MFTEntrySize << endl;
     printf("|Bytes Per Sector : %d\n", bytes_per_sector);
     printf("|Sectors Per Cluster : %d\n", sectors_per_cluster);
     printf("|Sectors Per Track : %d\n", sectors_per_track);
     printf("|Total Sectors : %ld\n", total_sectors);
     printf("|Cluster start of MFT : %ld\n", MFTStart);
     printf("|Cluster start of MFTMirror : %ld\n", MFTMirrorStart);
-    printf("|MFT Entry Size : %d\n", MFTEntrySize);
+    printf("|MFT Entry Size(sectors) : %d\n", MFTEntrySize);
     cout << endl << endl << endl;
     bpb = new BPB{ bytes_per_sector, sectors_per_cluster, sectors_per_track, total_sectors, MFTStart, MFTMirrorStart, MFTEntrySize};
 }
@@ -139,3 +145,41 @@ void printSector(BYTE* sector)
     cout << endl;
 }
 
+// void ReadRootDirNTFS(BPB* bpb, LPCWSTR disk)
+// {
+//     BYTE sector[1024];
+//     int64_t indexSector = bpb->MFTStart * bpb->sectorsPerCluster + 5;
+//     readNSector(disk, indexSector * 512, sector, bpb->MFTEntrySize);
+//     printSector(sector);
+//     // read MFT entry header
+//     NTFS_MFTEntryHeader* mftEntryHeader = new NTFS_MFTEntryHeader;
+//     mftEntryHeader->signature = Get_Bytes(sector, 0x00, 4);
+//     mftEntryHeader->fixupArrayOffset = Get_Bytes(sector, 0x04, 2);
+//     mftEntryHeader->fixupArraySize = Get_Bytes(sector, 0x06, 2);
+//     mftEntryHeader->LSN = Get_Bytes(sector, 0x08, 8);
+//     mftEntryHeader->sequenceNumber = Get_Bytes(sector, 0x10, 2);
+//     mftEntryHeader->linkCount = Get_Bytes(sector, 0x12, 2);
+//     mftEntryHeader->attributesOffset = Get_Bytes(sector, 0x14, 2);
+//     mftEntryHeader->flags = Get_Bytes(sector, 0x16, 2);
+//     mftEntryHeader->usedSize = Get_Bytes(sector, 0x18, 4);
+//     mftEntryHeader->allocatedSize = Get_Bytes(sector, 0x1C, 4);
+//     mftEntryHeader->baseFileRecord = Get_Bytes(sector, 0x20, 8);
+//     mftEntryHeader->nextAttributeID = Get_Bytes(sector, 0x28, 2);
+//     mftEntryHeader->MFTEntryNumber = Get_Bytes(sector, 0x2A, 2);
+//     mftEntryHeader->updateSequenceArray = Get_Bytes(sector, 0x2C, 4);
+//     printf("Signature: %x\n", mftEntryHeader->signature);
+//     // cout << "Signature: " << mftEntryHeader->signature[0] << mftEntryHeader->signature[1] << mftEntryHeader->signature[2] << mftEntryHeader->signature[3] << endl;
+//     // cout << "Fixup Array Offset: " << mftEntryHeader->fixupArrayOffset << endl;
+//     // cout << "Fixup Array Size: " << mftEntryHeader->fixupArraySize << endl;
+//     // cout << "LSN: " << mftEntryHeader->LSN << endl;
+//     // cout << "Sequence Number: " << mftEntryHeader->sequenceNumber << endl;
+//     // cout << "Link Count: " << mftEntryHeader->linkCount << endl;
+//     // cout << "Attributes Offset: " << mftEntryHeader->attributesOffset << endl;
+//     // cout << "Flags: " << mftEntryHeader->flags << endl;
+//     // cout << "Used Size: " << mftEntryHeader->usedSize << endl;
+//     // cout << "Allocated Size: " << mftEntryHeader->allocatedSize << endl;
+//     // cout << "Base File Record: " << mftEntryHeader->baseFileRecord << endl;
+//     // cout << "Next Attribute ID: " << mftEntryHeader->nextAttributeID << endl;
+//     // cout << "MFT Entry Number: " << mftEntryHeader->MFTEntryNumber << endl;
+//     // cout << "Update Sequence Array: " << mftEntryHeader->updateSequenceArray << endl;
+// }
