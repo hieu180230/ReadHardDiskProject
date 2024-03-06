@@ -9,7 +9,12 @@ int main(int argc, char** argv)
     SetConsoleOutputCP(CP_UTF8);
     setvbuf(stdout, nullptr, _IOFBF, 1000);
     BYTE sector[512];
-    ReadSector(L"\\\\.\\I:", 0, sector);
+    std::wstring name = L"";
+    std::cout << "Drive name: ";
+    std::wcin >> name;
+    name = L"\\\\.\\" + name + L":";
+    LPCWSTR drive = name.c_str();
+    ReadSector(drive, 0, sector);
     for (int i = 0; i < 512; i++)
     {
 		printf("%02x ", sector[i]);
@@ -21,7 +26,8 @@ int main(int argc, char** argv)
     std::cout << std::endl;
     FAT32BootSectorInfo* bootSectorInfo = ReadInfo::GetBootSectorInfo(sector);
     bootSectorInfo->printInfo();
-    std::cout << utils::DectoHex(bootSectorInfo->firstSectorOfCluster(bootSectorInfo->_RootCluster));
+    std::cout << std::endl << "---------------------------------------" << std::endl;
+    ReadInfo::getRDETInfo(drive, bootSectorInfo->firstSectorOfCluster(bootSectorInfo->_RootCluster), bootSectorInfo->_SectorsPerCluster);
     std::cout << std::endl;
     mainx();
     return 0;

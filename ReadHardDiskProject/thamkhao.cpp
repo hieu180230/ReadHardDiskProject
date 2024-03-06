@@ -657,6 +657,7 @@ void readSDET(LPCWSTR drive, int SRDET)
 
 void readRDET(LPCWSTR drive, int SRDET)
 {
+    cout << SRDET << endl;
     int k = 0;
     string temp = "";
     int count = 0;
@@ -665,6 +666,14 @@ void readRDET(LPCWSTR drive, int SRDET)
         bool checkend = false;
         BYTE sector[512];
         ReadSectorx(drive, SRDET + k, sector);
+        for (int i = 0; i < 512; i++)
+        {
+            printf("%02x ", sector[i]);
+            if ((i + 1) % 16 == 0)
+            {
+                printf("\n");
+            }
+        }
         for (int i = 0; i < 512; i = i + 32)
         {
             if (sector[i] == 0xe5)
@@ -773,6 +782,7 @@ void readRDET(LPCWSTR drive, int SRDET)
                     temp = "";
                     count = 0;
                 }
+                //end of count != 0
                 else
                 {
                     if (toString(sector, 0x08 + i, 3) != "   ")
@@ -972,7 +982,7 @@ int mainx()
     }
     long int SRDET = SB + SF * NF;
 
-    BYTE sector1[512];
+    /*BYTE sector1[512];
     BYTE temp1[100][100];
     vector<vector<string>> hexarr1;
 
@@ -985,7 +995,7 @@ int mainx()
         }
     }
     cout << endl;
-    tohex(temp1, hexarr1);
+    tohex(temp1, hexarr1);*/
     cout << endl;
     readRDET(drive, SRDET);
     return 0;

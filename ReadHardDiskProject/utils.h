@@ -3,7 +3,7 @@
 #include <string>
 #include <sstream>
 #include <Windows.h>
-
+#include <fstream>
 class utils
 {
 public:
@@ -12,3 +12,4 @@ public:
 
 int mainx();
 int ReadSector(LPCWSTR  drive, int readPoint, BYTE sector[512]);
+std::string ReadFile(std::string path);
