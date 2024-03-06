@@ -1,6 +1,8 @@
 #include "ReadSector.h"
+#include <cmath>
 
-int readSector(LPCWSTR drive, int readPoint, BYTE sector[512])
+
+int readNSector(LPCWSTR drive, int readPoint, BYTE* sector, int numbersOfSector)
 {
     int retCode = 0;
     DWORD bytesRead;
@@ -23,7 +25,7 @@ int readSector(LPCWSTR drive, int readPoint, BYTE sector[512])
 
     SetFilePointer(device, readPoint, NULL, FILE_BEGIN);//Set a Point to Read
 
-    if (!ReadFile(device, sector, 512, &bytesRead, NULL))
+    if (!ReadFile(device, sector, numbersOfSector * 512, &bytesRead, NULL))
     {
         cout << "ReadFile : " << GetLastError() << endl;
         return 0;
@@ -46,24 +48,38 @@ int64_t Get_Bytes(BYTE* sector, int offset, int number)
 }
 
 //doc thong tin trong bang phan vung NTFS roi hien thi ra man hinh
-void Read_NTFS(BYTE* sector, LPCWSTR disk)
+void Read_BPBNTFS(BYTE* sector, LPCWSTR disk, BPB* bpb)
 {
-    unsigned int bytes_per_sector = Get_Bytes(sector, 0x0B, 2); // Bytes Per Sector
-    unsigned int sectors_per_cluster = Get_Bytes(sector, 0x0D, 1); // Sectors Per Cluster
-    unsigned int sectors_per_track = Get_Bytes(sector, 0x18, 2); // Sectors Per Track
-    unsigned int total_sectors = Get_Bytes(sector, 0x28, 8); // Total Sectors
-    unsigned int MFTStart = Get_Bytes(sector, 0x30, 8); // Cluster start of MFT
-    unsigned int MFTMirrorStart = Get_Bytes(sector, 0x38, 8); // Cluster start of MFTMirror
+    uint16_t bytes_per_sector = Get_Bytes(sector, 0x0B, 2); // Bytes Per Sector
+    uint8_t sectors_per_cluster = Get_Bytes(sector, 0x0D, 1); // Sectors Per Cluster
+    uint16_t sectors_per_track = Get_Bytes(sector, 0x18, 2); // Sectors Per Track
+    uint64_t total_sectors = Get_Bytes(sector, 0x28, 8); // Total Sectors
+    uint64_t MFTStart = Get_Bytes(sector, 0x30, 8); // Cluster start of MFT
+    uint64_t MFTMirrorStart = Get_Bytes(sector, 0x38, 8); // Cluster start of MFTMirror
+    int8_t MFTEntrySizeByte = Get_Bytes(sector, 0x40, 1); // MFT Entry byte
+    if(MFTEntrySizeByte < 0)
+    {
+        MFTEntrySizeByte = -MFTEntrySizeByte;
+    }
+    int MFTEntrySize = pow(2, MFTEntrySizeByte);
     cout << endl;
     cout << endl << endl << endl;
-    cout << "|Bytes Per Sector : " << bytes_per_sector << endl;
-    cout << "|Sectors Per Cluster : " << sectors_per_cluster << endl;
-    cout << "|Sectors Per Track : " << sectors_per_track << endl;
-    cout << "|Total Sectors : " << total_sectors << endl;
-    cout << "|Cluster start of MFT : " << MFTStart << endl;
-    cout << "|Cluster start of MFTMirror : " << MFTMirrorStart << endl;
+    // cout << "|Bytes Per Sector : " << bytes_per_sector << endl;
+    // cout << "|Sectors Per Cluster : " << sectors_per_cluster << endl;
+    // cout << "|Sectors Per Track : " << sectors_per_track << endl;
+    // cout << "|Total Sectors : " << total_sectors << endl;
+    // cout << "|Cluster start of MFT : " << MFTStart << endl;
+    // cout << "|Cluster start of MFTMirror : " << MFTMirrorStart << endl;
+    // cout << "|MFT Entry Size : " << MFTEntrySize << endl;
+    printf("|Bytes Per Sector : %d\n", bytes_per_sector);
+    printf("|Sectors Per Cluster : %d\n", sectors_per_cluster);
+    printf("|Sectors Per Track : %d\n", sectors_per_track);
+    printf("|Total Sectors : %ld\n", total_sectors);
+    printf("|Cluster start of MFT : %ld\n", MFTStart);
+    printf("|Cluster start of MFTMirror : %ld\n", MFTMirrorStart);
+    printf("|MFT Entry Size : %d\n", MFTEntrySize);
     cout << endl << endl << endl;
-
+    bpb = new BPB{ bytes_per_sector, sectors_per_cluster, sectors_per_track, total_sectors, MFTStart, MFTMirrorStart, MFTEntrySize};
 }
 
 //in ra cac byte cua mot sector trong dia

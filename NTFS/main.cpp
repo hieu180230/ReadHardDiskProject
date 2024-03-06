@@ -7,12 +7,13 @@ int main(int argc, int** agrv)
     wcin >> name;
     name = L"\\\\.\\" + name + L":";
     LPCWSTR drive = name.c_str();
-    BYTE sector[512];
-    bool check = readSector(drive, 0, sector);
+    BYTE sector[1024];
+    bool check = readNSector(drive, 0, sector, 2);
     if (check == true)
     {
+        BPB* bpb = NULL;
         printSector(sector);
-        Read_NTFS(sector, drive);
+        Read_BPBNTFS(sector, drive, bpb);
     }
     else
     {

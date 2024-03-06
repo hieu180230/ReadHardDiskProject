@@ -18,12 +18,18 @@
     <ClInclude Include="ReadSector.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="NTFS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ReadSector.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NTFS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
