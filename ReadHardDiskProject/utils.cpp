@@ -11,7 +11,7 @@ int ReadSector(LPCWSTR  drive, int readPoint, BYTE sector[512])
     DWORD bytesRead;
     HANDLE device = NULL;
 
-    device = CreateFileW(drive,    // Drive to open
+    device = CreateFile(drive,    // Drive to open
         GENERIC_READ,           // Access mode
         FILE_SHARE_READ | FILE_SHARE_WRITE,        // Share Mode
         NULL,                   // Security Descriptor
@@ -32,8 +32,16 @@ int ReadSector(LPCWSTR  drive, int readPoint, BYTE sector[512])
     {
         printf("ReadFile: %u\n", GetLastError());
     }
-    else
+}
+
+std::string ReadFile(std::string path)
+{
+    std::fstream file(path);
+    std::string line;
+    std::string content;
+    while (std::getline(file, line))
     {
-        printf("Success!\n");
-    }
+		content += line + "\n";
+	}
+    return content;
 }
