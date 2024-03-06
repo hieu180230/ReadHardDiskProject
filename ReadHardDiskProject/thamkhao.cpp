@@ -689,6 +689,7 @@ void readRDET(LPCWSTR drive, int SRDET)
                 {
                     unsigned int high = toNumber(sector, 0x14 + i, 2);
                     unsigned int low = toNumber(sector, 0x1A + i, 2);
+                    std::cout << "High: " << high << "Low: " << low << std::endl;
                     unsigned int total = high + low;
                     cout << "File name: " << temp << endl;
                     cout << "Lenght: " << dec << toNumber(sector, 0x1C + i, 4) << endl;

@@ -7,5 +7,6 @@ class ReadInfo
 {
 public:
 	static FAT32BootSectorInfo* GetBootSectorInfo(BYTE sector[512]);
+	static void getRDETInfo(int root_cluster);
 };
 
