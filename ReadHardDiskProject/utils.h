@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <Windows.h>
 
 class utils
 {
@@ -10,3 +11,4 @@ public:
 };
 
 int mainx();
+int ReadSector(LPCWSTR  drive, int readPoint, BYTE sector[512]);
