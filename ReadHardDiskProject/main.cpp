@@ -27,8 +27,7 @@ int main(int argc, char** argv)
     FAT32BootSectorInfo* bootSectorInfo = ReadInfo::GetBootSectorInfo(sector);
     bootSectorInfo->printInfo();
     std::cout << std::endl << "---------------------------------------" << std::endl;
-    ReadInfo::getRDETInfo(drive, bootSectorInfo->firstSectorOfCluster(bootSectorInfo->_RootCluster), bootSectorInfo->_SectorsPerCluster);
+    ReadInfo::getRDETInfo(drive, bootSectorInfo->firstSectorOfCluster(bootSectorInfo->_RootCluster), bootSectorInfo->_SectorsPerCluster, bootSectorInfo->firstDataSector());
     std::cout << std::endl;
-    mainx();
     return 0;
 }

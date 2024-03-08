@@ -4,8 +4,11 @@
 #include <iomanip>
 #include <string>
 #include <algorithm>
-
+#include <conio.h>
 #define FRAGMENTED_LIMIT 50
+
+#define ENTER 13
+#define ESC 27
 
 NTFS::NTFS() {}
 
@@ -38,6 +41,24 @@ void NTFS::printInfo() {
 	std::cout << "$MFTMirr cluster number  :" << setw(SPACE) << info.Logical_MFTMirr << std::endl;
 	std::cout << "Size of MFT entry        :" << setw(SPACE) << sizeOfMFTEntry << std::endl;
 	std::cout << "Cluster per Index Buffer :" << setw(SPACE) << (int)info.Cluster_Index_Buffer << std::endl;
+	std::cout << "Press Enter to print raw info" << std::endl;
+	if(_getch() == ENTER) {
+		system("cls");
+		printRawInfo();
+	}
+}
+
+void NTFS::printRawInfo() {
+	BYTE result[512];
+	memcpy(&result, &info, 512);
+	printf("Offset(h)   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
+	for (int i = 0; i < 512; i++) {
+		if(i % 16 == 0)
+		{
+			printf("\n%09X  ", i);
+		}
+		printf("%02X ", result[i]);
+	}
 }
 
 void NTFS::displayDirectory() {
