@@ -64,17 +64,19 @@ FAT32BootSectorInfo* ReadInfo::GetBootSectorInfo(BYTE sector[512])
 	return bootSectorInfo;
 }
 
-void ReadInfo::getSDETInfo(int root_cluster, int sectors_per_cluster, std::string path)
+void ReadInfo::getSDETInfo(LPCWSTR drive, int root_cluster, int sectors_per_cluster, std::string path)
 {
-	std::string file_name = "";
+	
 	int count = 0;
 	int k = 0;
 	path += "\\";
 	while (true)
 	{
+		std::string file_name = "";
 		bool end_flag = false;
+		bool lfn = false;
 		BYTE sector[512];
-		ReadSector(L"\\\\.\\I:", root_cluster * 512 + k, sector);
+		ReadSector(drive, (root_cluster + k) * 512, sector);
 		for (int i = 64; i < 512; i += 32)
 		{
 			if (sector[i] == 0xe5) //deleted entry
@@ -90,18 +92,43 @@ void ReadInfo::getSDETInfo(int root_cluster, int sectors_per_cluster, std::strin
 			}
 			if (sector[i + 11] == 0x0f) //long file name
 			{
-				file_name = std::string((char*)&sector[i + 1], 10) + std::string((char*)&sector[i + 14], 12) + std::string((char*)&sector[i + 28], 4) + "LFN";
+				file_name = std::string((char*)&sector[i + 1], 10) + std::string((char*)&sector[i + 14], 12) + std::string((char*)&sector[i + 28], 4) + file_name;
+				for (int i = file_name.length() - 1; i >= 0; i--)
+				{
+					if (isalpha(file_name[i]))
+					{
+						file_name = file_name.substr(0, i + 1);
+						break;
+					}
+				}
+				//std::cout << file_name << std::endl;
+				lfn = true;
 			}
 			else
 			{
-				file_name = std::string((char*)&sector[i + 0], 8);
-				file_name = file_name.substr(0, file_name.find_last_not_of(" ") + 1);
+				if (!lfn)
+				{
+					file_name = std::string((char*)&sector[i + 0], 8);
+					file_name = file_name.substr(0, file_name.find_last_not_of(" ") + 1);
+				}
 				if (count != 0)
 				{
-					std::string expansion = std::string((char*)&sector[i + 8], 3);
-					if (expansion != "   ")
+					std::string expansion = "";
+					if (!lfn)
 					{
-						file_name = file_name + "." + expansion;
+						expansion = std::string((char*)&sector[i + 8], 3);
+						if (expansion != "   ")
+						{
+							file_name = file_name + "." + expansion;
+						}
+					}
+					else
+					{
+						expansion = file_name.substr(file_name.find_last_of(".") + 1);
+						for (auto& x : expansion)
+						{
+							x = std::toupper(x);
+						}
 					}
 					std::cout << "\tFile Name: " << file_name << std::endl
 						<< "\tFile Size: " << *(DWORD*)&sector[i + 28] << std::endl
@@ -150,11 +177,10 @@ void ReadInfo::getSDETInfo(int root_cluster, int sectors_per_cluster, std::strin
 						std::cout << "\tFiles/Sub folders: " << std::endl;
 						//read sdet (*(WORD*)&sector[i + 26] - 2) * sectors_per_cluster + root_cluster
 						std::string temp_path = path;
-						temp_path += "\\";
 						for (auto& x : file_name) {
 							temp_path += tolower(x);
 						}
-						getSDETInfo((*(WORD*)&sector[i + 26] - 2) * sectors_per_cluster + root_cluster, sectors_per_cluster, temp_path);
+						getSDETInfo(drive, (*(WORD*)&sector[i + 26] - 2) * sectors_per_cluster + 8192, sectors_per_cluster, temp_path);
 
 					}
 					// get fil's expansion and give appropriate suggestion
@@ -171,9 +197,15 @@ void ReadInfo::getSDETInfo(int root_cluster, int sectors_per_cluster, std::strin
 							std::cout << ReadFile(temp_path) << std::endl;
 
 						}
-						else if (true)
+						else
 						{
-							//other types of files
+							std::string tool = ExtensionToTool[expansion];
+							if (tool != "") {
+								std::cout << "\tSuggested opening tool: " << tool << std::endl;
+							}
+							else {
+								std::cout << "\tUnknown opening tool!" << std::endl;
+							}
 						}
 					}
 					file_name = "";
@@ -181,12 +213,24 @@ void ReadInfo::getSDETInfo(int root_cluster, int sectors_per_cluster, std::strin
 				}
 				else //count = 0
 				{
-					if (std::string((char*)&sector[i + 0x08], 3) != "   ")
+					if (std::string((char*)&sector[i + 8], 3) != "   ")
 					{
-						std::string expansion = std::string((char*)&sector[i + 8], 3);
-						if (expansion != "   ")
+						std::string expansion = "";
+						if (!lfn)
 						{
-							file_name = file_name + "." + expansion;
+							expansion = std::string((char*)&sector[i + 8], 3);
+							if (expansion != "   ")
+							{
+								file_name = file_name + "." + expansion;
+							}
+						}
+						else
+						{
+							expansion = file_name.substr(file_name.find_last_of(".") + 1);
+							for (auto& x : expansion)
+							{
+								x = std::toupper(x);
+							}
 						}
 						std::cout << "\tFile Name: " << file_name << std::endl
 							<< "\tFile Size: " << *(DWORD*)&sector[i + 28] << std::endl
@@ -235,11 +279,10 @@ void ReadInfo::getSDETInfo(int root_cluster, int sectors_per_cluster, std::strin
 							std::cout << "\tFiles/Sub folders: " << std::endl;
 							//read sdet (*(WORD*)&sector[i + 26] - 2) * sectors_per_cluster + root_cluster
 							std::string temp_path = path;
-							temp_path += "\\";
 							for (auto& x : file_name) {
 								temp_path += tolower(x);
 							}
-							getSDETInfo((*(WORD*)&sector[i + 26] - 2)* sectors_per_cluster + root_cluster, sectors_per_cluster, temp_path);
+							getSDETInfo(drive, (*(WORD*)&sector[i + 26] - 2) * sectors_per_cluster + 8192, sectors_per_cluster, temp_path);
 
 						}
 						// get fil's expansion and give appropriate suggestion
@@ -255,14 +298,36 @@ void ReadInfo::getSDETInfo(int root_cluster, int sectors_per_cluster, std::strin
 								}
 								std::cout << ReadFile(temp_path) << std::endl;
 							}
+							else
+							{
+								std::string tool = ExtensionToTool[expansion];
+								if (tool != "") {
+									std::cout << "\tSuggested opening tool: " << tool << std::endl;
+								}
+								else {
+									std::cout << "\tUnknown opening tool!" << std::endl;
+								}
+							}
 						}
 					}
 					else
 					{
-						std::string expansion = std::string((char*)&sector[i + 8], 3);
-						if (expansion != "   ")
+						std::string expansion = "";
+						if (!lfn)
 						{
-							file_name = file_name + "." + expansion;
+							expansion = std::string((char*)&sector[i + 8], 3);
+							if (expansion != "   ")
+							{
+								file_name = file_name + "." + expansion;
+							}
+						}
+						else
+						{
+							expansion = file_name.substr(file_name.find_last_of(".") + 1);
+							for (auto& x : expansion)
+							{
+								x = std::toupper(x);
+							}
 						}
 						std::cout << "\tFile Name: " << file_name << std::endl
 							<< "\tFile Size: " << *(DWORD*)&sector[i + 28] << std::endl
@@ -311,15 +376,15 @@ void ReadInfo::getSDETInfo(int root_cluster, int sectors_per_cluster, std::strin
 							std::cout << "\tFiles/Sub folders: " << std::endl;
 							//read sdet (*(WORD*)&sector[i + 26] - 2) * sectors_per_cluster + root_cluster
 							std::string temp_path = path;
-							temp_path += "\\";
 							for (auto& x : file_name) {
 								temp_path += tolower(x);
 							}
-							getSDETInfo((*(WORD*)&sector[i + 26] - 2)* sectors_per_cluster + root_cluster, sectors_per_cluster, temp_path);
+							getSDETInfo(drive, (*(WORD*)&sector[i + 26] - 2) * sectors_per_cluster + 8192, sectors_per_cluster, temp_path);
 
 						}
 
 					}
+					file_name = "";
 				}
 				std::cout << std::endl;
 			}
@@ -349,15 +414,7 @@ void ReadInfo::getRDETInfo(LPCWSTR drive, int root_cluster, int sectors_per_clus
 	{
 		bool end_flag = false;
 		BYTE sector[512];
-		ReadSector(drive, root_cluster * 512 + k, sector);
-		for (int i = 0; i < 512; i++)
-		{
-			printf("%02x ", sector[i]);
-			if ((i + 1) % 16 == 0)
-			{
-				printf("\n");
-			}
-		}
+		ReadSector(drive, (root_cluster + k) * 512, sector);
 		for (int i = 0; i < 512; i += 32)
 		{
 			if (sector[i] == 0xe5) //deleted entry
@@ -436,8 +493,8 @@ void ReadInfo::getRDETInfo(LPCWSTR drive, int root_cluster, int sectors_per_clus
 						for (auto& x : file_name) {
 							temp_path += tolower(x);
 						}
-						std::cout << temp_path << std::endl;
-						getSDETInfo((*(WORD*)&sector[i + 26] - 2) * sectors_per_cluster + root_cluster, sectors_per_cluster, temp_path);
+						//std::cout << temp_path << std::endl;
+						getSDETInfo(drive, (*(WORD*)&sector[i + 26] - 2) * sectors_per_cluster + 8192, sectors_per_cluster, temp_path);
 					}
 					// get fil's expansion and give appropriate suggestion
 					if (sector[i + 11] == 0x20)
@@ -453,9 +510,15 @@ void ReadInfo::getRDETInfo(LPCWSTR drive, int root_cluster, int sectors_per_clus
 							}
 							std::cout << ReadFile(temp_path) << std::endl;
 						}
-						else if (true)
+						else
 						{
-							//other types of files
+							std::string tool = ExtensionToTool[expansion];
+							if (tool != "") {
+								std::cout << "Suggested opening tool: " << tool << std::endl;
+							}
+							else {
+								std::cout << "Unknown opening tool!" << std::endl;
+							}
 						}
 					}
 					file_name = "";
@@ -520,8 +583,8 @@ void ReadInfo::getRDETInfo(LPCWSTR drive, int root_cluster, int sectors_per_clus
 							for (auto& x : file_name) {
 								temp_path += tolower(x);
 							}
-							std::cout << temp_path << std::endl;
-							getSDETInfo((*(WORD*)&sector[i + 26] - 2)* sectors_per_cluster + root_cluster, sectors_per_cluster, temp_path);
+							//std::cout << temp_path << std::endl;
+							getSDETInfo(drive, (*(WORD*)&sector[i + 26] - 2)* sectors_per_cluster + 8192, sectors_per_cluster, temp_path);
 
 						}
 						// get fil's expansion and give appropriate suggestion
@@ -536,8 +599,18 @@ void ReadInfo::getRDETInfo(LPCWSTR drive, int root_cluster, int sectors_per_clus
 								for (auto& x : file_name) {
 									temp_path += tolower(x);
 								}
-								std::cout << temp_path << std::endl;
+								//std::cout << temp_path << std::endl;
 								std::cout << ReadFile(temp_path) << std::endl;
+							}
+							else
+							{
+								std::string tool = ExtensionToTool[expansion];
+								if (tool != "") {
+									std::cout << "Suggested opening tool: " << tool << std::endl;
+								}
+								else {
+									std::cout << "Unknown opening tool!" << std::endl;
+								}
 							}
 						}
 					}
@@ -598,9 +671,8 @@ void ReadInfo::getRDETInfo(LPCWSTR drive, int root_cluster, int sectors_per_clus
 							for (auto& x : file_name) {
 								temp_path += tolower(x);
 							}
-							std::cout << temp_path << std::endl;
-							getSDETInfo((*(WORD*)&sector[i + 26] - 2)* sectors_per_cluster + root_cluster, sectors_per_cluster, temp_path);
-
+							//std::cout << temp_path << std::endl;
+							getSDETInfo(drive, (*(WORD*)&sector[i + 26] - 2) * sectors_per_cluster + 8192, sectors_per_cluster, temp_path);
 						}
 						
 					}
