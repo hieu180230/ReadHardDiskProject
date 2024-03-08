@@ -54,7 +54,7 @@ public:
 
 	void readInfo();				// Đọc VBR
 	void printInfo();				// In bảng VBR
-
+	void printRawInfo();			// In thông tin VBR dưới dạng raw
 	void displayDirectory();
 	void scanAllEntries();
 	MFTEntry readEntry(BYTE bytes[]);

@@ -35,4 +35,3 @@ public:
 	static vector<string>split(string haystack, string needle);
 };
 
-int ReadNSector(LPCWSTR drive, int64_t readPoint, BYTE* sector, int numbersOfSector);
