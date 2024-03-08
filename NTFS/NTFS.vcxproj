@@ -127,13 +127,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AbstractFile.h" />
+    <ClInclude Include="File.h" />
+    <ClInclude Include="Folder.h" />
+    <ClInclude Include="MFTEntry.h" />
     <ClInclude Include="NTFS.h" />
     <ClInclude Include="ReadSector.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MFTEntry.cpp" />
     <ClCompile Include="NTFS.cpp" />
     <ClCompile Include="ReadSector.cpp" />
+    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
