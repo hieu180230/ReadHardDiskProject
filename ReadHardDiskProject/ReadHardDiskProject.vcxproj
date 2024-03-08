@@ -131,7 +131,6 @@
     <ClCompile Include="BootSectorInfo.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ReadInfo.cpp" />
-    <ClCompile Include="thamkhao.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
